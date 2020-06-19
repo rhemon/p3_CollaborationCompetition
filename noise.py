@@ -1,31 +1,34 @@
 import numpy as np
+import random
+import copy
 
 """
-Taken from https://github.com/vitchyr/rlkit/blob/master/rlkit/exploration_strategies/ou_strategy.py
+Code taken from Udacty's classroom
 """
-class OUNoise(object):
-    def __init__(self, action_size, a_low, a_high, mu=0.0, theta=0.15, max_sigma=0.3, min_sigma=0.3, decay_period=100000):
-        self.mu           = mu
-        self.theta        = theta
-        self.sigma        = max_sigma
-        self.max_sigma    = max_sigma
-        self.min_sigma    = min_sigma
-        self.decay_period = decay_period
-        self.action_dim   = action_size
-        self.low          = a_low
-        self.high         = a_high
+class OUNoise:
+    """Ornstein-Uhlenbeck process."""
+
+    def __init__(self, size, seed, mu=0., theta=0.15, sigma=0.2):
+        """Initialize parameters and noise process."""
+        self.mu = mu * np.ones(size)
+        self.theta = theta
+        self.sigma = sigma
+        self.seed = random.seed(seed)
         self.reset()
-        
+
     def reset(self):
-        self.state = np.ones(self.action_dim) * self.mu
-        
-    def evolve_state(self):
-        x  = self.state
-        dx = self.theta * (self.mu - x) + self.sigma * np.random.randn(self.action_dim)
+        """Reset the internal state (= noise) to mean (mu)."""
+        self.state = copy.copy(self.mu)
+
+    def sample(self):
+        """Update internal state and return it as a noise sample."""
+        x = self.state
+        dx = self.theta * (self.mu - x) + self.sigma * np.random.standard_normal(1)
         self.state = x + dx
         return self.state
     
-    def get_action(self, action, t=0): 
-        ou_state = self.evolve_state()
-        self.sigma = self.max_sigma - (self.max_sigma - self.min_sigma) * min(1.0, t / self.decay_period)
-        return np.clip(action + ou_state, self.low, self.high)
+    def get_action(self, action): 
+        """
+        For given action add the noise to the action and return it clipped to its range.
+        """
+        return np.clip(action + self.sample(), -1, 1)
